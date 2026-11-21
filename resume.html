@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE STRUCTURE (top to bottom)
+     1. HEAD        : meta, libraries, fonts, custom CSS
+     2. BACKGROUND  : particle canvas + glowing blobs
+     3. NAVBAR      : fixed top bar (hides on scroll down)
+     4. HERO        : intro text, identity card, tech stack
+     5. PROJECTS    : 3 project cards
+     6. EXPERIENCE  : timeline
+     7. CONTACT FORM: "Let's Connect" form (opens mail app)
+     8. FOOTER      : contact buttons + copyright
+     9. SCRIPTS     : icons, animations, particles, form, navbar
+     ═══════════════════════════════════════════════════════════ -->
+
+<!-- ═════════════════════ 1. HEAD ═════════════════════ -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devesh Turbadkar | Portfolio</title>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script> <!-- Tailwind CSS -->
+    <script src="https://unpkg.com/lucide@latest"></script>                     <!-- Lucide icons -->
+
+    <!-- Google Fonts: Plus Jakarta Sans (body) + Space Grotesk (headings) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* ───── Base ───── */
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+            overflow-x: hidden;
+        }
+        .heading-font { font-family: 'Space Grotesk', sans-serif; }
+
+        /* Hides scrollbar on the navbar's horizontal scroll (class was used but undefined before) */
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        /* ───── Glass card (used by profile card, projects, experience, forms) ───── */
+        .glass-card {
+            background: rgba(10, 15, 30, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+            will-change: transform, box-shadow, border-color;
+        }
+        .glass-card:hover {
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 20px 50px rgba(99, 102, 241, 0.25);
+            transform: translateY(-6px) scale(1.01);
+        }
+
+        /* ───── Tech pill (small skill boxes in hero) ───── */
+        .tech-pill {
+            background: rgba(17, 24, 39, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            will-change: transform, box-shadow, border-color;
+        }
+        .tech-pill:hover {
+            border-color: rgba(6, 182, 212, 0.5);
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.3);
+            transform: translateY(-4px) scale(1.05);
+            background: rgba(6, 182, 212, 0.08);
+        }
+
+        /* ───── Scroll reveal: sections fade/slide in (class "active" added by JS) ───── */
+        .reveal-element {
+            opacity: 0;
+            transform: translateY(40px);
+            filter: blur(4px);
+            transition: opacity 0.9s cubic-bezier(0.215, 0.610, 0.355, 1),
+                        transform 0.9s cubic-bezier(0.215, 0.610, 0.355, 1),
+                        filter 0.9s cubic-bezier(0.215, 0.610, 0.355, 1);
+            will-change: opacity, transform, filter;
+        }
+        .reveal-element.active { opacity: 1; transform: translateY(0); filter: blur(0); }
+
+        /* ───── Staggered tech pills: slide in from right (class "run-in" added by JS) ───── */
+        .stagger-pill {
+            opacity: 0;
+            transform: translateX(50px) scale(0.9);
+            filter: blur(4px);
+            transition: opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1),
+                        transform 0.6s cubic-bezier(0.25, 1, 0.5, 1),
+                        filter 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            will-change: opacity, transform, filter;
+        }
+        .stagger-pill.run-in { opacity: 1; transform: translateX(0) scale(1); filter: blur(0); }
+
+        /* ───── 3D tilt on profile card (mouse movement handled in JS) ───── */
+        .tilt-card { transform-style: preserve-3d; perspective: 1000px; transition: transform 0.15s ease-out; }
+        .tilt-card-child { transform: translateZ(20px); }
+
+        /* ───── Ambient glow blobs behind the page ───── */
+        .glow-effect {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+            filter: blur(60px);
+            z-index: 0;
+            pointer-events: none;
+            animation: pulseGlow 8s ease-in-out infinite alternate;
+        }
+        @keyframes pulseGlow {
+            0%   { transform: scale(1) translate(0, 0);       opacity: 0.8; }
+            100% { transform: scale(1.1) translate(15px, -15px); opacity: 1; }
+        }
+
+        /* ───── Hero entrance keyframes (used inline via animate-[...] classes) ───── */
+        @keyframes slideUpFade { to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+        @keyframes expandWidth { to { transform: scaleX(1); } }   /* fixed: was "scale-x(1)", which is invalid CSS */
+        @keyframes blurIn      { to { opacity: 1; filter: blur(0); } }
+        @keyframes scalePopIn  { to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+
+<body class="relative selection:bg-indigo-500 selection:text-white">
+
+    <!-- ═════════════════════ 2. BACKGROUND ═════════════════════ -->
+    <!-- Floating particles (drawn by JS in section 9) -->
+    <canvas id="particleCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-0 opacity-40"></canvas>
+
+    <!-- Three glowing blobs: top-right, left-middle, bottom-right -->
+    <div class="glow-effect w-[300px] h-[300px] md:w-[600px] md:h-[600px] top-[-150px] right-[-100px]"></div>
+    <div class="glow-effect w-[350px] h-[350px] md:w-[700px] md:h-[700px] bottom-[30%] left-[-250px]"></div>
+    <div class="glow-effect w-[250px] h-[250px] md:w-[500px] md:h-[500px] bottom-0 right-0"></div>
+
+
+    <!-- ═════════════════════ 3. NAVBAR ═════════════════════ -->
+    <!-- Fixed top bar. Hides when scrolling down (see navbar script at the bottom). -->
+    <header id="navbar" class="fixed top-0 left-0 w-full z-50 bg-[#050b18]/90 backdrop-blur-xl border-b border-white/10 transition-transform duration-300">
+        <div class="max-w-7xl mx-auto">
+
+            <!-- Logo / name -->
+            <div class="h-16 flex items-center justify-center">
+                <a class="heading-font text-2xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-cyan-400 to-purple-400">
+                    Devesh Turbadkar
+                </a>
+            </div>
+
+            <!-- Menu links (scrolls sideways on small screens) -->
+            <div class="overflow-x-auto whitespace-nowrap no-scrollbar border-t border-white/5">
+                <nav class="flex w-max gap-7 px-6 py-4 text-sm font-medium">
+                    <!-- <a href="#home" class="text-gray-400 hover:text-cyan-400 transition">Home</a> -->
+                    <a href="#projects"   class="text-gray-400 hover:text-cyan-400 transition">Projects</a>
+                    <a href="#experience" class="text-gray-400 hover:text-cyan-400 transition">Experience</a>
+                    <a href="#contact"    class="text-gray-400 hover:text-cyan-400 transition">Contact</a>
+                    <!-- TODO: replace YOUR_GITHUB_LINK with your real GitHub URL -->
+                    <a href="https://github.com/Devesh-Turbadkar" target="_blank" class="text-gray-400 hover:text-cyan-400 transition">GitHub</a>
+                    <!-- <a href="YOUR_LINKEDIN_LINK" target="_blank" class="text-gray-400 hover:text-cyan-400 transition">LinkedIn</a> -->
+                </nav>
+            </div>
+
+        </div>
+    </header>
+
+
+    <!-- ═════════════════════ 4. HERO (#home) ═════════════════════ -->
+    <section id="home" class="relative min-h-screen flex items-center max-w-7xl mx-auto px-4 md:px-6 z-10 overflow-hidden rounded-3xl mt-20">
+
+        <!-- 4a. Background video + dark gradient overlays (keeps text readable) -->
+        <div class="absolute inset-0 w-full h-full z-0 overflow-hidden rounded-3xl border border-gray-900 shadow-2xl">
+            <div class="absolute inset-0 bg-gradient-to-r from-gray-950 via-gray-950/85 to-transparent z-10"></div> <!-- left → right fade -->
+            <div class="absolute inset-0 bg-gradient-to-t from-gray-950 via-transparent to-transparent z-10"></div> <!-- bottom → top fade -->
+
+            <!-- Use forward slashes in web paths (backslashes fail on most servers) -->
+            <video autoplay muted playsinline id="bgVideo" preload="auto"
+                   class="w-full h-full object-cover pointer-events-none opacity-25 md:opacity-65 transition-opacity duration-700">
+                <source src="Static/resume.mp4">
+            </video>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 w-full items-start relative z-20 pt-8 pb-12">
+
+            <!-- 4b. LEFT COLUMN: intro text + buttons -->
+            <div class="lg:col-span-7 space-y-6 font-sans order-1 lg:order-1">
+
+                <!-- "Open for role" badge -->
+                <div class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-400 font-medium tracking-wide opacity-0 translate-y-6 filter blur-sm animate-[slideUpFade_0.8s_cubic-bezier(0.215,0.61,0.355,1)_forwards]">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Open For Python Backend & GenAI Developer Role</span>
+                </div>
+
+                <!-- Main heading + animated underline -->
+                <div class="space-y-1 block w-full">
+                    <h1 class="heading-font font-bold tracking-tight leading-none text-white relative inline-block pb-4 opacity-0 translate-y-8 filter blur-sm animate-[slideUpFade_0.9s_cubic-bezier(0.25,1,0.5,1)_0.25s_forwards]">
+                        <span class="text-4xl md:text-6xl lg:text-7xl block mb-2 font-bold tracking-tight">Hi, I'm</span>
+                        <span class="text-4xl md:text-6xl lg:text-7xl text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 drop-shadow-[0_2px_10px_rgba(99,102,241,0.15)] block leading-tight">
+                            Devesh Turbadkar
+                        </span>
+                        <!-- underline that grows left → right -->
+                        <span class="absolute bottom-0 left-0 w-full h-[2px] bg-gradient-to-r from-indigo-500 via-purple-500 to-transparent scale-x-0 origin-left animate-[expandWidth_1.2s_cubic-bezier(0.25,1,0.5,1)_0.6s_forwards]"></span>
+                    </h1>
+                </div>
+
+                <!-- Job title -->
+                <h2 class="text-lg md:text-2xl font-semibold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400 tracking-wide font-mono opacity-0 filter blur-md animate-[blurIn_0.8s_ease-out_0.5s_forwards]">
+                    Software Developer
+                </h2>
+
+                <!-- About text -->
+                <p class="text-sm md:text-base text-gray-300 leading-relaxed">
+                   I'm a Software Developer passionate about building intelligent applications, solving real-world problems, and exploring the possibilities of Artificial Intelligence.
+                   My development journey revolves around Python, Backend Development, Machine Learning, and Generative AI. I enjoy transforming ideas into practical solutions by combining software engineering principles with emerging technologies.
+                   <br><br>
+                  💡 My Interests- I'm particularly interested in the intersection of Software Engineering and Artificial Intelligence, especially building AI-powered applications, intelligent automation systems, backend services, and scalable solutions.
+                    I enjoy exploring new technologies, understanding how things work behind the scenes, and continuously improving my development skills through hands-on implementation.
+                    I believe great software is built through continuous learning, experimentation, and the ability to turn ideas into working solutions.
+                    Always Learning. Always Building. Always Improving.
+                </p>
+                <p class="text-sm md:text-base text-gray-400">
+                    Everything you need is just one click away. Use the buttons below to explore my professional journey, featured projects, and contact information.
+                </p>
+
+                <!-- Quick-jump buttons (same style, so one shared class list) -->
+                <div class="pt-4 flex flex-wrap gap-4 opacity-0 scale-95 animate-[scalePopIn_0.6s_cubic-bezier(0.34,1.56,0.64,1)_0.85s_forwards]">
+                    <a href="#experience" class="inline-flex items-center space-x-2 px-6 h-12 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-sm font-semibold text-white hover:from-indigo-500 hover:to-pink-500 shadow-lg shadow-indigo-600/30 transition-all transform hover:-translate-y-1 hover:shadow-purple-500/40 duration-300"><span>Experience</span></a>
+                    <a href="#projects"   class="inline-flex items-center space-x-2 px-6 h-12 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-sm font-semibold text-white hover:from-indigo-500 hover:to-pink-500 shadow-lg shadow-indigo-600/30 transition-all transform hover:-translate-y-1 hover:shadow-purple-500/40 duration-300"><span>Projects</span></a>
+                    <a href="#contact"    class="inline-flex items-center space-x-2 px-6 h-12 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-sm font-semibold text-white hover:from-indigo-500 hover:to-pink-500 shadow-lg shadow-indigo-600/30 transition-all transform hover:-translate-y-1 hover:shadow-purple-500/40 duration-300"><span>Contact</span></a>
+                </div>
+            </div>
+
+            <!-- 4c. RIGHT COLUMN: identity card + tech stack -->
+            <div class="lg:col-span-5 flex flex-col items-center lg:items-end space-y-8 w-full order-2 lg:order-2 reveal-element active">
+
+                <!-- Identity card (tilts with mouse — see script) -->
+                <div id="profileTiltCard" class="relative w-full max-w-sm lg:max-w-[340px] aspect-[4/5] rounded-3xl p-6 glass-card group overflow-hidden shadow-xl tilt-card">
+                    <div class="absolute inset-0 bg-gradient-to-b from-indigo-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                    <div class="h-full flex flex-col justify-between relative z-10 tilt-card-child">
+
+                        <!-- Card header -->
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs uppercase tracking-widest text-gray-500 font-mono">Identity Card</span>
+                            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-glow animate-pulse"></div>
+                        </div>
+
+                        <!-- Card body: photo, name, email, skill tags -->
+                        <div class="my-4 flex-1 w-full bg-gray-950/80 rounded-2xl border border-gray-900 flex flex-col items-center justify-center p-4 text-center shadow-inner overflow-hidden">
+                            <div class="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden mb-3 shadow-xl shadow-indigo-500/20 transform group-hover:scale-105 group-hover:rotate-3 transition-all duration-300 bg-gradient-to-tr from-indigo-500 via-purple-500 to-cyan-400 flex items-center justify-center">
+                                <!-- Was a local "E:\Resume\..." path, which only works on your PC. Now relative to the site folder. -->
+                                <img src="Static/IMG_2860.png" alt="Devesh Turbadkar" class="w-full h-full object-cover"
+                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                <!-- Fallback icon if the photo fails to load -->
+                                <i data-lucide="terminal" class="w-10 h-10 text-white" style="display:none;"></i>
+                            </div>
+
+                            <h3 class="heading-font font-bold text-lg md:text-xl text-white">Devesh Pradip Turbadkar</h3>
+                            <p class="text-xs text-sky-400 break-all">Devesh.turbadkar.5@gmail.com</p>
+
+                            <div class="mt-3 flex flex-wrap gap-1.5 justify-center">
+                                <span class="px-2 py-0.5 text-[10px] rounded bg-gray-900 border border-gray-800 text-gray-300 font-mono">Python</span>
+                                <span class="px-2 py-0.5 text-[10px] rounded bg-gray-900 border border-gray-800 text-gray-300 font-mono">AI Ecosystems</span>
+                                <!-- <span class="px-2 py-0.5 text-[10px] rounded bg-gray-900 border border-gray-800 text-gray-300 font-mono">Django</span> -->
+                            </div>
+                        </div>
+
+                        <!-- Card footer: quick facts -->
+                        <div class="space-y-1.5 border-t border-gray-900 pt-3">
+                            <div class="flex justify-between text-xs text-sky-400">
+                                <span>Education:</span>
+                                <span class="text-white font-medium text-right truncate pl-2">M.Sc. Info Technology</span>
+                            </div>
+                            <div class="flex justify-between text-xs text-sky-400">
+                                <span>Location:</span>
+                                <span class="text-white font-medium text-right">Kandivali, Mumbai, India</span>
+                            </div>
+                            <div class="flex justify-between text-xs text-sky-400">
+                                <span>Experience:</span>
+                                <span class="text-white font-medium text-right">3+ Years</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Core technical stack: pills animate in one-by-one (see script) -->
+                <!-- Core technical stack: compact chips that flow and wrap naturally -->
+<div id="techStackContainer" class="w-full max-w-sm lg:max-w-[340px] space-y-3">
+    <div class="flex items-center space-x-2 font-mono text-xs px-1">
+        <i data-lucide="layers" class="w-4 h-4 text-cyan-400"></i>
+        <span class="uppercase tracking-wider font-semibold text-gray-200">Core Technical Stack</span>
+    </div>
+
+                <div class="flex flex-wrap gap-1.5">
+                    <!-- To add a skill: copy one chip, change icon name, colour and text -->
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="code-2" class="w-3.5 h-3.5 text-indigo-400"></i><span class="text-[11px] font-medium text-gray-300">Python</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="layers" class="w-3.5 h-3.5 text-cyan-400"></i><span class="text-[11px] font-medium text-gray-300">Django / DRF</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="zap" class="w-3.5 h-3.5 text-emerald-400"></i><span class="text-[11px] font-medium text-gray-300">FastAPI</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="database" class="w-3.5 h-3.5 text-purple-400"></i><span class="text-[11px] font-medium text-gray-300">MySQL / PostgreSQL</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="bar-chart-3" class="w-3.5 h-3.5 text-yellow-400"></i><span class="text-[11px] font-medium text-gray-300">Pandas, NumPy, Scikit-learn</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="atom" class="w-3.5 h-3.5 text-orange-400"></i><span class="text-[11px] font-medium text-gray-300">React</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="link" class="w-3.5 h-3.5 text-pink-400"></i><span class="text-[11px] font-medium text-gray-300">OpenAI API</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="message-square-text" class="w-3.5 h-3.5 text-pink-400"></i><span class="text-[11px] font-medium text-gray-300">Prompt Engineering</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="brain-circuit" class="w-3.5 h-3.5 text-pink-400"></i><span class="text-[11px] font-medium text-gray-300">LLM Integration / APIs</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="bot" class="w-3.5 h-3.5 text-blue-400"></i><span class="text-[11px] font-medium text-gray-300">RAG</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="network" class="w-3.5 h-3.5 text-cyan-400"></i><span class="text-[11px] font-medium text-gray-300">Embeddings</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="shield-check" class="w-3.5 h-3.5 text-yellow-400"></i><span class="text-[11px] font-medium text-gray-300">Pydantic</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="test-tube" class="w-3.5 h-3.5 text-yellow-400"></i><span class="text-[11px] font-medium text-gray-300">Pytest</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="workflow" class="w-3.5 h-3.5 text-cyan-400"></i><span class="text-[11px] font-medium text-gray-300">CI/CD</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="cloud" class="w-3.5 h-3.5 text-cyan-400"></i><span class="text-[11px] font-medium text-gray-300">AWS (EC2, ECR, ECS)</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="git-branch" class="w-3.5 h-3.5 text-cyan-400"></i><span class="text-[11px] font-medium text-gray-300">Git / GitHub</span></div>
+                    <div class="px-2.5 py-1.5 rounded-lg tech-pill stagger-pill flex items-center space-x-1.5 whitespace-nowrap"><i data-lucide="container" class="w-3.5 h-3.5 text-cyan-400"></i><span class="text-[11px] font-medium text-gray-300">Docker / Compose</span></div>
+                </div>
+            </div>
+
+            </div>
+        </div>
+    </section>
+
+
+    <!-- ═════════════════════ 5. PROJECTS ═════════════════════ -->
+    <section id="projects" class="py-4 max-w-7xl mx-auto px-4 md:px-6 z-10 relative border-t border-gray-900/60 reveal-element">
+
+        <!-- Section title -->
+        <div class="text-center max-w-3xl mx-auto mb-6">
+            <h2 class="heading-font font-bold uppercase tracking-widest text-indigo-400 mb-2 text-2xl md:text-3xl">Projects Portfolio</h2>
+            <p class="text-gray-400 text-sm">A collection of projects demonstrating my technical skills, problem-solving, and development experience.</p>
+        </div>
+
+        <!-- Cards grid: 1 column on mobile, 2 on tablet, 3 on desktop -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <!-- Project 1 -->
+            <div class="rounded-2xl p-6 glass-card flex flex-col justify-between group">
+                <div>
+                    <div class="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-6 border border-indigo-500/20 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">
+                        <i data-lucide="trending-up" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="heading-font text-xl font-bold text-white group-hover:text-indigo-400 transition-colors">1.Business Intelligence & Analytics Dashboard</h3>
+                    <p class="text-sm text-gray-400 mt-2 leading-relaxed">
+                        Developed a custom analytics dashboard to visualize and analyze store data stored in PostgreSQL, presenting business insights through interactive charts, reports, and data summaries.
+                    </p>
+                </div>
+                <div class="mt-2 pt-4 border-t border-gray-900/60 flex justify-between items-center text-xs text-gray-500 font-mono">
+                    <span>Python, Django, REST APIs, PostgreSQL, Pandas.</span>
+                    <!-- <span class="text-indigo-400">Production App</span> -->
+                </div>
+            </div>
+
+            <!-- Project 2 -->
+            <div class="rounded-2xl p-6 glass-card flex flex-col justify-between group">
+                <div>
+                    <div class="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-6 border border-cyan-400/20 group-hover:bg-cyan-500 group-hover:text-white transition-all duration-300">
+                        <i data-lucide="house" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="heading-font text-xl font-bold text-white group-hover:text-cyan-400 transition-colors">2.House Price Prediction</h3>
+                    <p class="text-sm text-gray-400 mt-2 leading-relaxed">
+                        Developed a Machine Learning model to predict property prices using historical housing data, data preprocessing, and regression algorithms.
+                    </p>
+                </div>
+                <div class="mt-8 pt-4 border-t border-gray-900/60 flex justify-between items-center text-xs text-gray-500 font-mono">
+                    <span>Python, Scikit-learn, Pandas, NumPy, FastAPI.</span>
+                    <!-- <span class="text-cyan-400">Automation</span> -->
+                </div>
+            </div>
+            
+
+            <!-- Project 3 -->
+            <div class="rounded-2xl p-6 glass-card flex flex-col justify-between group">
+                <div>
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center mb-6 border border-purple-500/20 group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">
+                        <i data-lucide="message-square" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="heading-font text-xl font-bold text-white group-hover:text-purple-400 transition-colors">3.AI Customer Feedback Analyzer</h3>
+                    <p class="text-sm text-gray-400 mt-2 leading-relaxed">
+                        Analyze customer reviews using Generative AI to identify sentiment, common complaints, customer preferences, and improvement opportunities.
+                    </p>
+                </div>
+                <div class="mt-8 pt-4 border-t border-gray-900/60 flex justify-between items-center text-xs text-gray-500 font-mono">
+                    <span>Python, FastAPI, REST APIs, Gemini API, LangChain, PostgreSQL, Pandas, HTML, CSS, JavaScript.</span>
+                    <!-- <span class="text-purple-400">Enterprise BI</span> -->
+                </div>
+            </div>
+
+            <!-- Project 4 -->
+            <div class="rounded-2xl p-6 glass-card flex flex-col justify-between group">
+                <div>
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center mb-6 border border-purple-500/20 group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">
+                        <i data-lucide="file-question" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="heading-font text-xl font-bold text-white group-hover:text-purple-400 transition-colors">4.PDF-Based RAG Question-Answering System</h3>
+                    <p class="text-sm text-gray-400 mt-2 leading-relaxed">
+                        Building a document-based question-answering system that extracts information from PDFs, generates embeddings, retrieves relevant content, and produces context-aware answers using an LLM.
+                    </p>
+                </div>
+                <div class="mt-8 pt-4 border-t border-gray-900/60 flex justify-between items-center text-xs text-gray-500 font-mono">
+                    <span>Python, FastAPI, PostgreSQL, pgvector, Sentence Transformers, RAG, Ollama, Gemma.</span>
+                    <!-- <span class="text-purple-400">Enterprise BI</span> -->
+                </div>
+            </div>
+
+            <!-- Project 5 -->
+            <div class="rounded-2xl p-6 glass-card flex flex-col justify-between group">
+                <div>
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center mb-6 border border-purple-500/20 group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">
+                        <i data-lucide="bot" class="w-6 h-6"></i>
+                    </div>
+                    <h3 class="heading-font text-xl font-bold text-white group-hover:text-purple-400 transition-colors">5.AI Content Creation Agent</h3>
+                    <p class="text-sm text-gray-400 mt-2 leading-relaxed">
+                        Developing an AI-powered agent that researches trending topics, generates content ideas and scripts, creates voiceovers, and automates video creation using Python and Generative AI.
+                    </p>
+                </div>
+                <div class="mt-8 pt-4 border-t border-gray-900/60 flex justify-between items-center text-xs text-gray-500 font-mono">
+                    <span>Python, FastAPI, Agentic AI, LangChain, LLMs, Gemini API, YouTube Data API, Text-to-Speech (TTS), FFmpeg, PostgreSQL.</span>
+                    <!-- <span class="text-purple-400">Enterprise BI</span> -->
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- ═════════════════════ 6 + 7. EXPERIENCE & CONTACT FORM ═════════════════════ -->
+    <section id="experience" class="py-10 max-w-4xl mx-auto px-4 md:px-6 z-10 relative border-t border-gray-900/60 reveal-element">
+
+        <!-- ───── 6. Experience timeline ───── -->
+        <div class="mb-10">
+            <div class="text-center mb-6">
+                <h2 class="heading-font font-bold uppercase tracking-widest text-indigo-400 mb-2 text-2xl md:text-3xl">Professional Experience</h2>
+                <p class="text-gray-400 text-sm">A timeline of my professional journey</p>
+            </div>
+
+            <div class="rounded-2xl glass-card p-6 md:p-8 font-sans">
+                <!-- The "before:" classes draw the vertical line -->
+                <div class="space-y-8 relative before:absolute before:inset-y-0 before:left-4 md:before:left-32 before:w-[2px] before:bg-gray-800">
+
+                    <!-- Entry: newest first. To add one, copy a block and change dot colour, years, title, text -->
+                    <div class="relative flex flex-col md:flex-row md:items-start pl-8 md:pl-0">
+                        <div class="md:w-32 mb-2 md:mb-0 md:text-right md:pr-8 font-mono text-sm font-semibold text-cyan-400 shrink-0">2024-Present</div>
+                        <div class="absolute left-4 md:left-32 w-3.5 h-3.5 bg-indigo-500 rounded-full -translate-x-1/2 border-4 border-gray-950 z-10"></div>
+                        <div class="bg-gray-950/60 p-4 rounded-xl border border-gray-900 w-full">
+                            <h4 class="text-white font-bold text-base">JAYSHREE CORPORATION</h4>
+                            <p class="text-sm text-gray-400 mt-1">🚀 Currently Building & Exploring
+
+Working on hands-on projects involving Django REST APIs and backend development, developing Machine Learning models for predictive analytics and building RAG-based applications using LLMs, embeddings, and vector search to create intelligent question-answering systems.</p>
+                        </div>
+                    </div>
+
+                    <div class="relative flex flex-col md:flex-row md:items-start pl-8 md:pl-0">
+                        <div class="md:w-32 mb-2 md:mb-0 md:text-right md:pr-8 font-mono text-sm font-semibold text-cyan-400 shrink-0">2022-2024</div>
+                        <div class="absolute left-4 md:left-32 w-3.5 h-3.5 bg-purple-500 rounded-full -translate-x-1/2 border-4 border-gray-950 z-10"></div>
+                        <div class="bg-gray-950/60 p-4 rounded-xl border border-gray-900 w-full">
+                            <h4 class="text-white font-bold text-base">Post Graduation in MSC-IT</h4>
+                            <p class="text-sm text-gray-400 mt-1">Completed Master of Science in Information Technology while scaling full-stack AI logic engines.</p>
+                        </div>
+                    </div>
+
+                    <div class="relative flex flex-col md:flex-row md:items-start pl-8 md:pl-0">
+                        <div class="md:w-32 mb-2 md:mb-0 md:text-right md:pr-8 font-mono text-sm font-semibold text-cyan-400 shrink-0">2021-2022</div>
+                        <div class="absolute left-4 md:left-32 w-3.5 h-3.5 bg-blue-500 rounded-full -translate-x-1/2 border-4 border-gray-950 z-10"></div>
+                        <div class="bg-gray-950/60 p-4 rounded-xl border border-gray-900 w-full">
+                            <h4 class="text-white font-bold text-base">Insite Digital Pvt. Ltd.</h4>
+                            <p class="text-sm text-gray-400 mt-1">Developed a Business Intelligence dashboard to visualize and analyze store data stored in PostgreSQL, transforming raw business data into interactive charts, reports, and meaningful insights through a custom-built dashboard.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ───── 7. Contact form ───── -->
+        <!-- Submitting opens the visitor's mail app with the message pre-filled (see sendEmailPayload in scripts) -->
+        <div id="contact-section" class="scroll-mt-24 pt-4">
+            <div class="text-center mb-6">
+                <h2 class="heading-font font-bold uppercase tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 text-2xl md:text-3xl">Let's Connect!</h2>
+                <p class="text-gray-400 text-sm tracking-wide leading-relaxed mt-2">Get in touch using the contact form below.</p>
+            </div>
+
+            <form id="contactForm" class="rounded-2xl glass-card p-6 md:p-8 font-sans" onsubmit="sendEmailPayload(event)">
+                <!-- Name + Email side by side -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs font-semibold tracking-wider text-indigo-400 uppercase mb-2 font-mono">Full Name</label>
+                        <input id="formName" type="text" placeholder="Your Name" required class="w-full h-12 px-4 rounded-xl bg-gray-950/50 border border-gray-900 focus:border-indigo-500 focus:outline-none text-sm font-medium text-white transition-colors focus:ring-1 focus:ring-indigo-500/30">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold tracking-wider text-indigo-400 uppercase mb-2 font-mono">Email Address</label>
+                        <input id="formEmail" type="email" placeholder="name@company.com" required class="w-full h-12 px-4 rounded-xl bg-gray-950/50 border border-gray-900 focus:border-indigo-500 focus:outline-none text-sm font-medium text-white transition-colors focus:ring-1 focus:ring-indigo-500/30">
+                    </div>
+                </div>
+
+                <!-- Message -->
+                <div class="mt-4">
+                    <label class="block text-xs font-semibold tracking-wider text-indigo-400 uppercase mb-2 font-mono">Message Description</label>
+                    <textarea id="formMessage" rows="5" placeholder="Describe the details of your project or professional scope..." required class="w-full p-4 rounded-xl bg-gray-950/50 border border-gray-900 focus:border-indigo-500 focus:outline-none text-sm font-medium text-white transition-colors resize-none focus:ring-1 focus:ring-indigo-500/30"></textarea>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" class="w-full h-12 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500 text-sm font-bold shadow-lg shadow-indigo-500/10 transition-all cursor-pointer hover:-translate-y-0.5 flex items-center justify-center space-x-2">
+                    <span>Send Mail</span>
+                    <i data-lucide="mail" class="w-4 h-4"></i>
+                </button>
+            </form>
+        </div>
+    </section>
+
+
+    <!-- ═════════════════════ 8. FOOTER ═════════════════════ -->
+    <footer class="border-t border-gray-900/60 pt-8 pb-8 max-w-7xl mx-auto px-4 md:px-6">
+
+        <!-- Contact card (target of the "Contact" nav link: #contact) -->
+        <div id="contact" class="-mt-8 max-w-2xl mx-auto rounded-2xl glass-card p-6 md:p-8 font-sans text-center">
+            <h3 class="heading-font text-2xl font-bold text-white mb-2">Professional Contact</h3>
+            <p class="text-gray-400 text-sm mb-6">Choose your preferred way to connect with me.</p>
+
+            <div class="flex flex-wrap justify-center gap-4">
+                <a href="mailto:Devesh.turbadkar.5@gmail.com"
+                   class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all duration-300">📧 Email</a>
+
+                <!-- TODO: replace with your real GitHub URL -->
+                <a href="https://github.com/Devesh-Turbadkar?tab=repositories" target="_blank"
+                   class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gray-900 border border-gray-800 text-gray-300 hover:border-cyan-400 hover:text-cyan-400 transition-all duration-300">🔗 GitHub</a>
+
+                <!-- TODO: replace with your real LinkedIn URL -->
+                <a href="https://www.linkedin.com/in/devesh-turbadkar-459ba8260/" target="_blank"
+                   class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-600 hover:text-white transition-all duration-300">💼 LinkedIn</a>
+            </div>
+        </div>
+
+        <!-- Copyright -->
+        <div class="mt-8 text-center text-xs text-gray-500">© Devesh Pradip Turbadkar. All rights reserved.</div>
+    </footer>
+
+
+    <!-- ═════════════════════ 9. SCRIPTS ═════════════════════ -->
+    <script>
+        /* ───── 9.1 Icons: turns every <i data-lucide="..."> into an SVG icon ───── */
+        lucide.createIcons();
+
+
+        /* ───── 9.2 Scroll reveal: adds class "active" when a section enters the screen ───── */
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) entry.target.classList.add('active');
+            });
+        }, { threshold: 0.05, rootMargin: "0px 0px -20px 0px" });
+
+        document.querySelectorAll('.reveal-element').forEach(el => revealObserver.observe(el));
+
+
+        /* ───── 9.3 Tech stack: pills slide in one after another (80ms apart) ───── */
+        const techContainer = document.getElementById('techStackContainer');
+        const techPills = document.querySelectorAll('.stagger-pill');
+
+        const techObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    techPills.forEach((pill, index) => {
+                        setTimeout(() => pill.classList.add('run-in'), index * 80);
+                    });
+                    techObserver.unobserve(entry.target); // run only once
+                }
+            });
+        }, { threshold: 0.1 });
+
+        if (techContainer) techObserver.observe(techContainer);
+
+
+        /* ───── 9.4 3D tilt on the identity card (desktop only) ───── */
+        const tiltCard = document.getElementById('profileTiltCard');
+
+        if (tiltCard && window.innerWidth > 768) {
+            tiltCard.addEventListener('mousemove', (e) => {
+                const rect = tiltCard.getBoundingClientRect();
+                const x = e.clientX - rect.left;   // mouse position inside card
+                const y = e.clientY - rect.top;
+                const tiltX = (rect.height / 2 - y) / 10;
+                const tiltY = (x - rect.width / 2) / 10;
+                tiltCard.style.transform = `rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(-6px) scale(1.01)`;
+            });
+
+            // Reset when mouse leaves
+            tiltCard.addEventListener('mouseleave', () => {
+                tiltCard.style.transform = 'rotateX(0deg) rotateY(0deg) translateY(0px) scale(1)';
+            });
+        }
+
+
+        /* ───── 9.5 Background particles (small drifting dots on the canvas) ───── */
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        // Keep canvas the same size as the window
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // One particle: random position, size, speed and opacity
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = Math.random() * 0.4 - 0.2;
+                this.speedY = Math.random() * 0.4 - 0.2;
+                this.alpha = Math.random() * 0.5 + 0.2;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                // Wrap around the edges
+                if (this.x > canvas.width)  this.x = 0;
+                if (this.x < 0)             this.x = canvas.width;
+                if (this.y > canvas.height) this.y = 0;
+                if (this.y < 0)             this.y = canvas.height;
+            }
+            draw() {
+                ctx.fillStyle = `rgba(99, 102, 241, ${this.alpha})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // Create particles (max 60, fewer on small screens)
+        function initParticles() {
+            particles = [];
+            const count = Math.min(window.innerWidth / 20, 60);
+            for (let i = 0; i < count; i++) particles.push(new Particle());
+        }
+        initParticles();
+
+        // Animation loop
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+
+        /* ───── 9.6 Contact form: opens the visitor's email app with the message pre-filled ───── */
+        function sendEmailPayload(event) {
+            event.preventDefault(); // stop normal form submit
+
+            const name  = document.getElementById('formName').value;
+            const email = document.getElementById('formEmail').value;
+            const msg   = document.getElementById('formMessage').value;
+
+            const recipient = 'Devesh.turbadkar.5@gmail.com';
+            const subject = encodeURIComponent(`Portfolio Inquiry from ${name}`);
+            const messageBody = `Hello Devesh,\n\nYou have received a message via your portfolio form:\n\nName: ${name}\nEmail: ${email}\n\nMessage:\n${msg}`;
+
+            window.location.href = `mailto:${recipient}?subject=${subject}&body=${encodeURIComponent(messageBody)}`;
+        }
+
+
+        /* ───── 9.7 Navbar: always visible at top, hides when scrolling down ───── */
+        let lastScroll = 0;
+        const navbar = document.getElementById("navbar");
+
+        window.addEventListener("scroll", () => {
+            const currentScroll = window.pageYOffset;
+
+            // At the very top → show
+            if (currentScroll <= 0) {
+                navbar.style.transform = "translateY(0)";
+                return;
+            }
+
+            // Scrolling down → hide
+            if (currentScroll > lastScroll) {
+                navbar.style.transform = "translateY(-100%)";
+            }
+            // Scrolling up → show (disabled; uncomment to re-enable)
+            // else { navbar.style.transform = "translateY(0)"; }
+
+            lastScroll = currentScroll;
+        });
+    </script>
+</body>
+</html>
